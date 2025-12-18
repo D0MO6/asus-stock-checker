@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "ASUS Stock Checker",
+  "version": "1.0.0",
+  "description": "Verifica disponibilità e prezzi ASUS su fornitori italiani",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "https://b2b.esprinet.com/*",
+    "https://www.brevi.it/*",
+    "https://www.runner.it/*",
+    "https://www.cometa.it/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "ASUS Stock Checker"
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+}
