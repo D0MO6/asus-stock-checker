@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASUS Stock Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 600px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loading.hidden {
+            display: none;
+        }
+
+        #error {
+            display: none;
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        #error.hidden {
+            display: none;
+        }
+
+        #noResults {
+            display: none;
+            background: #fef3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        #noResults.hidden {
+            display: none;
+        }
+
+        #results {
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #results.hidden {
+            display: none;
+        }
+
+        .product-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.3s;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .product-header {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        .product-name {
+            font-weight: 700;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .product-model {
+            font-size: 11px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .best-price {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .best-price-label {
+            opacity: 0.9;
+        }
+
+        .best-price-value {
+            font-weight: 700;
+        }
+
+        .suppliers-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .supplier-item {
+            display: grid;
+            grid-template-columns: 1fr 100px 120px 35px;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            font-size: 12px;
+        }
+
+        .supplier-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .supplier-price {
+            font-weight: 700;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .supplier-qty {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .qty-available {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .qty-unavailable {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .supplier-link {
+            text-align: center;
+            text-decoration: none;
+            color: #667eea;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .supplier-link:hover {
+            color: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 ASUS Stock</h1>
+            <p>Verifica disponibilità e prezzi</p>
+        </div>
+
+        <div class="search-box">
+            <input 
+                type="text" 
+                id="modelInput" 
+                placeholder="Es: S5606CA-RI068W"
+                autocomplete="off"
+            >
+            <button id="searchBtn">Cerca</button>
+        </div>
+
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p>Ricerca in corso...</p>
+        </div>
+
+        <div id="error" class="hidden"></div>
+        <div id="noResults" class="hidden">❌ Nessun risultato trovato</div>
+
+        <div id="results" class="hidden">
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAZIONE FORNITORI CON SELETTORI CORRETTI
+        const FORNITORI = {
+            esprinet: {
+                name: 'Esprinet',
+                url: 'https://b2b.esprinet.com',
+                search_url: 'https://b2b.esprinet.com/DataSheets/?idarticolo=',
+                selector_prodotto: '.card-body',
+                selector_nome: 'a[href*="DataSheets"]',
+                selector_prezzo: 'span.ng-binding',
+                selector_stock: '.fa-check, .fa-times'
+            },
+            brevi: {
+                name: 'Brevi',
+                url: 'https://www.brevi.it',
+                search_url: 'https://www.brevi.it/index.php?c=&com=y&ord=no&search=',
+                selector_prodotto: 'tbody tr',
+                selector_nome: 'strong.blue',
+                selector_prezzo: '.prezzonetto',
+                selector_stock: 'td'
+            },
+            runner: {
+                name: 'Runner',
+                url: 'https://www.runner.it',
+                search_url: 'https://www.runner.it/cerca.php?cerca=',
+                selector_prodotto: '.list-box-prodotto',
+                selector_nome: '.titolo_prodotto',
+                selector_prezzo: '.price',
+                selector_stock: '.disp'
+            },
+            cometa: {
+                name: 'Cometa',
+                url: 'https://www.cometa.it/shop',
+                search_url: 'https://www.cometa.it/shop/search/',
+                selector_prodotto: '.product',
+                selector_nome: 'h2, h3, .woocommerce-loop-product__title',
+                selector_prezzo: '.price, .woocommerce-Price-amount',
+                selector_stock: '.stock'
+            }
+        };
+
+        const WAIT_TIME = 8000;
+
+        const modelInput = document.getElementById('modelInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const loadingDiv = document.getElementById('loading');
+        const resultsDiv = document.getElementById('results');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const errorDiv = document.getElementById('error');
+        const noResultsDiv = document.getElementById('noResults');
+
+        searchBtn.addEventListener('click', () => performSearch());
+        modelInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        async function performSearch() {
+            const modello = modelInput.value.trim();
+            
+            if (!modello) {
+                showError('Inserisci un modello ASUS');
+                return;
+            }
+
+            showLoading();
+            
+            try {
+                const results = await searchAllSuppliers(modello);
+                
+                if (results.length === 0) {
+                    showNoResults();
+                } else {
+                    displayResults(results);
+                }
+            } catch (err) {
+                showError(`Errore: ${err.message}`);
+                console.error('Errore ricerca:', err);
+            }
+        }
+
+        async function searchAllSuppliers(modello) {
+            const results = [];
+            const promises = [];
+
+            for (const [key, fornitore] of Object.entries(FORNITORI)) {
+                promises.push(
+                    searchSupplier(key, modello).catch(err => {
+                        console.error(`Errore ${fornitore.name}:`, err);
+                        return null;
+                    })
+                );
+            }
+
+            const searchResults = await Promise.all(promises);
+            
+            const productMap = new Map();
+            
+            searchResults.forEach((result) => {
+                if (!result || !result.products) return;
+                
+                result.products.forEach(product => {
+                    if (!product.name || product.name === 'N/A') return;
+                    
+                    const key = product.name.toLowerCase().trim();
+                    
+                    if (!productMap.has(key)) {
+                        productMap.set(key, {
+                            name: product.name,
+                            model: modello,
+                            suppliers: []
+                        });
+                    }
+                    
+                    productMap.get(key).suppliers.push({
+                        name: result.supplier,
+                        price: product.price,
+                        qty: product.qty,
+                        link: product.link
+                    });
+                });
+            });
+
+            if (productMap.size === 0) return [];
+
+            return Array.from(productMap.values()).map(product => {
+                product.suppliers = product.suppliers.map(s => ({
+                    ...s,
+                    parsedPrice: parsePrice(s.price)
+                }));
+
+                return product;
+            }).sort((a, b) => {
+                const minA = Math.min(...a.suppliers.map(s => s.parsedPrice));
+                const minB = Math.min(...b.suppliers.map(s => s.parsedPrice));
+                return minA - minB;
+            });
+        }
+
+        async function searchSupplier(supplierKey, modello) {
+            const fornitore = FORNITORI[supplierKey];
+            let searchUrl = fornitore.search_url + encodeURIComponent(modello);
+            
+            console.log(`Cercando su ${fornitore.name}: ${searchUrl}`);
+            
+            try {
+                const tab = await chrome.tabs.create({ url: searchUrl });
+                console.log(`Tab aperto per ${fornitore.name}: ID ${tab.id}`);
+                
+                await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
+                console.log(`Tempo di attesa completato per ${fornitore.name}`);
+                
+                const results = await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    function: extractProductsFromPage,
+                    args: [fornitore]
+                });
+                
+                const products = results[0]?.result || [];
+                console.log(`${fornitore.name}: estratti ${products.length} prodotti`);
+                
+                await chrome.tabs.remove(tab.id);
+                console.log(`Tab chiuso per ${fornitore.name}`);
+                
+                return {
+                    supplier: fornitore.name,
+                    products: products
+                };
+            } catch (err) {
+                console.error(`Errore ${fornitore.name}:`, err);
+                throw err;
+            }
+        }
+
+        function extractProductsFromPage(fornitore) {
+            const products = [];
+            const productElements = document.querySelectorAll(fornitore.selector_prodotto);
+            
+            console.log(`${fornitore.name}: Trovati ${productElements.length} elementi prodotto`);
+            
+            productElements.forEach((el, idx) => {
+                try {
+                    const nome = extractText(el, fornitore.selector_nome);
+                    const prezzo = extractText(el, fornitore.selector_prezzo);
+                    const stock = extractText(el, fornitore.selector_stock);
+                    const link = el.querySelector('a')?.href || fornitore.url;
+                    
+                    if (nome && nome !== 'N/A' && prezzo && prezzo !== 'N/A') {
+                        products.push({
+                            name: nome,
+                            price: prezzo,
+                            qty: stock || 'Disponibile',
+                            link: link
+                        });
+                        console.log(`✓ ${fornitore.name}: ${nome} - ${prezzo}`);
+                    }
+                } catch (err) {
+                    console.error(`Errore estrazione prodotto ${idx}:`, err);
+                }
+            });
+            
+            return products;
+        }
+
+        function extractText(element, selector) {
+            try {
+                const el = element.querySelector(selector);
+                if (el) {
+                    const text = el.textContent?.trim();
+                    if (text && text !== '') return text;
+                }
+            } catch (err) {
+                // Selettore non valido
+            }
+            return 'N/A';
+        }
+
+        function parsePrice(priceStr) {
+            if (!priceStr || priceStr === 'N/A') return Infinity;
+            
+            const cleaned = priceStr
+                .replace(/[^\d,.-]/g, '')
+                .replace(/\./g, '')
+                .replace(',', '.');
+            
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? Infinity : num;
+        }
+
+        function displayResults(results) {
+            hideLoading();
+            noResultsDiv.classList.add('hidden');
+            resultsDiv.classList.remove('hidden');
+            
+            resultsContainer.innerHTML = results.map(product => `
+                <div class="product-card">
+                    <div class="product-header">
+                        <div class="product-name">${escapeHtml(product.name)}</div>
+                        <div class="product-model">Ricerca: ${escapeHtml(product.model)}</div>
+                    </div>
+                    
+                    ${product.suppliers.length > 0 ? `
+                        <div class="best-price">
+                            <span class="best-price-label">💰 Prezzo migliore:</span>
+                            <span class="best-price-value">${escapeHtml(product.suppliers[0].price)} (${escapeHtml(product.suppliers[0].name)})</span>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="suppliers-list">
+                        ${product.suppliers.map(supplier => `
+                            <div class="supplier-item">
+                                <span class="supplier-name">${escapeHtml(supplier.name)}</span>
+                                <span class="supplier-price">${escapeHtml(supplier.price)}</span>
+                                <span class="supplier-qty ${isAvailable(supplier.qty) ? 'qty-available' : 'qty-unavailable'}">
+                                    ${escapeHtml(supplier.qty.substring(0, 20))}
+                                </span>
+                                <a class="supplier-link" href="${supplier.link}" target="_blank" title="Apri">🔗</a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+            
+            errorDiv.classList.add('hidden');
+        }
+
+        function showLoading() {
+            loadingDiv.classList.remove('hidden');
+            resultsDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            noResultsDiv.classList.add('hidden');
+        }
+
+        function hideLoading() {
+            loadingDiv.classList.add('hidden');
+        }
+
+        function showError(message) {
+            hideLoading();
+            resultsDiv.classList.add('hidden');
+            noResultsDiv.classList.add('hidden');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function showNoResults() {
+            hideLoading();
+            resultsDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            noResultsDiv.classList.remove('hidden');
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function isAvailable(qtyText) {
+            if (!qtyText) return false;
+            const text = String(qtyText).toLowerCase();
+            return !text.includes('non disponibile') && 
+                   !text.includes('esaurito') && 
+                   !text.includes('non specificato') &&
+                   text !== '0' &&
+                   text !== 'n/a';
+        }
+
+        window.addEventListener('load', () => {
+            modelInput.focus();
+        });
+    </script>
+</body>
+</html>
